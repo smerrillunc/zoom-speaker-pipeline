@@ -49,7 +49,7 @@ Or all four at once: `./run_pipeline.sh meetings/ work/ "Riverton City Council, 
 
 Every step skips meetings that already have output (`--overwrite` redoes them), writes
 through a temporary file so an interrupted run never leaves half a result, and accepts
-`--shard i/n` (steps 1–2) for job arrays. See `scripts/slurm_example.sh`.
+`--shard i/n` (steps 1–2), so a job array can split a folder across tasks.
 
 ## What your video needs
 
@@ -162,10 +162,6 @@ Useful environment variables:
   backend that might happen to be installed.
 - Every parameter that affects the result is written into `registry.json` and
   `<id>.attribution.json`.
-- `python tests/test_steps.py` (or `pytest`) runs an end-to-end test of steps 3–4 on a
-  synthetic two-meeting collection, a determinism check, and ~70 doctests that pin the
-  parsing and linking rules, including real false-merge risks (`johnsmith` vs
-  `joansmith`, `Kate` vs a clipped "magistrate").
 
 ## Limitations
 
