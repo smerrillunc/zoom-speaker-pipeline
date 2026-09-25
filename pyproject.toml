@@ -14,11 +14,6 @@ dependencies = ["rapidfuzz>=3.0"]
 [project.optional-dependencies]
 ocr = ["numpy", "opencv-contrib-python-headless", "paddlepaddle", "paddleocr", "paddlex[ocr]"]
 asr = ["faster-whisper", "torch", "torchaudio", "pyannote.audio", "huggingface_hub"]
-test = ["pytest"]
 
 [tool.setuptools]
 packages = ["zoompipe"]
-
-[tool.pytest.ini_options]
-addopts = "--doctest-modules"
-testpaths = ["tests", "zoompipe/identity.py", "zoompipe/attribution.py", "zoompipe/files.py"]
