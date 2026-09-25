@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+models/
+work/
+transcripts/
+*.wav
+*.mp4
+*.mkv
+*.webm
+*.partial

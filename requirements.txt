@@ -1,0 +1,20 @@
+# Exact versions the released transcripts were produced with (Python 3.11).
+# Several of these fail SILENTLY when unpinned -- see README "Installation".
+
+# Steps 3-4 (clean_ocr.py, merge.py): nothing else is needed for these two.
+rapidfuzz==3.14.6
+
+# Step 1 (ocr.py): frame decoding, highlight detection, EDSR, PaddleOCR.
+numpy==2.2.6
+opencv-contrib-python-headless==4.10.0.84   # contrib build: cv2.dnn_superres (EDSR) is contrib-only
+paddlepaddle==3.0.0                          # or paddlepaddle-gpu==3.0.0
+paddleocr==3.2.0
+paddlex[ocr]==3.2.1                          # without the [ocr] extra, OCR returns nothing and no error
+
+# Step 2 (transcribe.py): Whisper and pyannote voice clusters.
+faster-whisper==1.2.1
+ctranslate2==4.8.2
+torch==2.5.1                                 # 2.6 flips weights_only and breaks pyannote 3.3
+torchaudio==2.5.1                            # 2.9 drops AudioMetaData
+pyannote.audio==3.3.2                        # 4.x renamed use_auth_token
+huggingface_hub==0.36.2                      # newer versions report the gated model as missing
