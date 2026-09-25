@@ -14,7 +14,7 @@ on-screen speaker track (step 3, ``<id>.speakers.json``):
   holds at least ``--minor-share`` of the cluster; otherwise it keeps the cluster's
   name. A cluster heard mostly under a room, device or screen-share tile is ``Other``.
 
-    python merge.py --asr work/ --speakers work/ --out transcripts/ --formats json,txt,srt
+    python pipeline/step4_merge.py --asr work/ --speakers work/ --out transcripts/ --formats json,txt,srt
 
 Writes per meeting:
 
@@ -29,9 +29,9 @@ import argparse
 import os
 import sys
 
-from zoompipe import __version__
-from zoompipe.attribution import HIGHLIGHT_LAG_SECONDS, attribute_segments, merge_turns
-from zoompipe.files import collect, read_json, stem, write_json
+from helpers import __version__
+from helpers.attribution import HIGHLIGHT_LAG_SECONDS, attribute_segments, merge_turns
+from helpers.files import collect, read_json, stem, write_json
 
 
 def build_parser():
@@ -59,7 +59,7 @@ def main(argv=None):
     if unknown:
         print(f"Unknown format(s): {', '.join(sorted(unknown))}", file=sys.stderr)
         return 2
-    from zoompipe import render
+    from helpers import render
 
     asr = {stem(p): p for p in collect(args.asr, (".asr.json",))}
     speakers = {stem(p): p for p in collect(args.speakers, (".speakers.json",))}

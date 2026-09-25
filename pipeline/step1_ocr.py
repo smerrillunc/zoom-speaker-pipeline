@@ -6,8 +6,8 @@ For every video, sample frames (1 per second by default), find Zoom's highlighte
 active-speaker tile, crop its name strip and read it with PaddleOCR. The raw reads are
 kept exactly as OCR returned them; cleaning them is step 3 (``clean_ocr.py``).
 
-    python ocr.py meeting.mp4 --out work/
-    python ocr.py videos/ --out work/ --shard 3/8        # one task of an 8-way array
+    python pipeline/step1_ocr.py meeting.mp4 --out work/
+    python pipeline/step1_ocr.py videos/ --out work/ --shard 3/8        # one task of an 8-way array
 
 Writes ``<out>/<id>.ocr.json``:
 
@@ -32,7 +32,7 @@ import sys
 import time
 import traceback
 
-from zoompipe.files import collect, shard, stem, write_json
+from helpers.files import collect, shard, stem, write_json
 
 
 def build_parser():
@@ -75,8 +75,8 @@ def main(argv=None):
         print("No videos to process.", file=sys.stderr)
         return 0
 
-    from zoompipe.highlight import ZoomSpeakerDiarization
-    from zoompipe.namereader import NameReader
+    from helpers.highlight import ZoomSpeakerDiarization
+    from helpers.namereader import NameReader
 
     reader = NameReader(use_super_resolution=not args.no_super_resolution)
     preflight(reader)

@@ -6,8 +6,8 @@ For every video (or audio file), extract 16 kHz mono audio, transcribe it with
 faster-whisper, and group the segments into voice clusters with pyannote.
 
     export HF_TOKEN=...            # access to the gated pyannote/speaker-diarization-3.1
-    python transcribe.py meeting.mp4 --out work/
-    python transcribe.py videos/ --out work/ --whisper large-v2 --shard 0/4
+    python pipeline/step2_transcribe.py meeting.mp4 --out work/
+    python pipeline/step2_transcribe.py videos/ --out work/ --whisper large-v2 --shard 0/4
 
 Writes ``<out>/<id>.asr.json``:
 
@@ -31,7 +31,7 @@ import tempfile
 import time
 import traceback
 
-from zoompipe.files import collect, shard, stem, write_json
+from helpers.files import collect, shard, stem, write_json
 
 AUDIO_SUFFIXES = (".wav", ".mp3", ".m4a", ".flac")
 
@@ -54,13 +54,13 @@ def build_parser():
 
 def main(argv=None):
     args = build_parser().parse_args(argv)
-    from zoompipe import files
+    from helpers import files
     inputs = shard(collect(args.inputs, files.VIDEO_SUFFIXES + AUDIO_SUFFIXES), args.shard)
     if not inputs:
         print("No inputs to process.", file=sys.stderr)
         return 0
 
-    from zoompipe import speech
+    from helpers import speech
 
     token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_TOKEN")
     cluster = args.clustering == "on" or (args.clustering == "auto" and bool(token))
