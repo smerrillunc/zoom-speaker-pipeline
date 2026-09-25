@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Step 3 of 4 -- clean the OCR: turn raw tile reads into stable person identities.
+Clean the OCR: turn raw tile reads into stable person identities.
 
 Run once per **collection** (one body's meetings: a council, a court). Two passes:
 
@@ -13,9 +13,12 @@ Run once per **collection** (one body's meetings: a council, a court). Two passe
    O'Cana-Olivarez" in another). Every merge and every refused merge is recorded in
    ``registry.json`` with the rule that decided it.
 
-    python pipeline/step3_clean_ocr.py work/ --out work/ --context "Montague Township Council, Ontario"
+    python pipeline/clean_ocr.py work/ --out work/ --context "Montague Township Council, Ontario"
 
-Reads ``*.ocr.json`` (step 1; ``*.video.json`` from earlier runs also works) and writes:
+Order: run after ``ocr.py`` has finished every meeting of the collection, and before
+``merge.py``.
+
+Reads ``*.ocr.json`` (from ``ocr.py``; ``*.video.json`` from earlier runs also works) and writes:
 
     <out>/<id>.speakers.json   the cleaned on-screen speaker track of one meeting
     <out>/registry.json        who is who across the collection, with evidence

@@ -5,8 +5,8 @@ Zoom draws a highlight around the active speaker's tile and prints their name in
 Reading that name once a second gives an identity signal audio diarization cannot
 recover; this package aligns it onto a Whisper transcript.
 
-The pipeline is the four step scripts next to this folder (``step1_ocr.py``,
-``step2_transcribe.py``, ``step3_clean_ocr.py``, ``step4_merge.py``). The modules here
+The pipeline is the four step scripts next to this folder (``ocr.py``,
+``transcribe.py``, ``clean_ocr.py``, ``merge.py``). The modules here
 are what they call:
 
 ``highlight``    find the highlighted tile, crop its name strip (OpenCV)

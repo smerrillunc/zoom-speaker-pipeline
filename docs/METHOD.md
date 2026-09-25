@@ -1,7 +1,7 @@
 # Method
 
-How a raw tile read becomes a person (steps 3–4). Steps 1–2 are described in the
-README. The code is `pipeline/helpers/identity.py` (parsing and linking) and
+How a raw tile read becomes a person (`clean_ocr.py` and `merge.py`). `ocr.py` and
+`transcribe.py` are described in the README. The code is `pipeline/helpers/identity.py` (parsing and linking) and
 `pipeline/helpers/attribution.py` (attribution).
 
 ## Why cleaning is needed

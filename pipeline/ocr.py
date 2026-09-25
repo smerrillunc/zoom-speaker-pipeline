@@ -1,13 +1,15 @@
 #!/usr/bin/env python
 """
-Step 1 of 4 -- OCR: read who is on screen, once per sampled frame.
+OCR: read who is on screen, once per sampled frame.
 
 For every video, sample frames (1 per second by default), find Zoom's highlighted
 active-speaker tile, crop its name strip and read it with PaddleOCR. The raw reads are
-kept exactly as OCR returned them; cleaning them is step 3 (``clean_ocr.py``).
+kept exactly as OCR returned them; ``clean_ocr.py`` cleans them.
 
-    python pipeline/step1_ocr.py meeting.mp4 --out work/
-    python pipeline/step1_ocr.py videos/ --out work/ --shard 3/8        # one task of an 8-way array
+Order: run before ``clean_ocr.py``. Independent of ``transcribe.py``.
+
+    python pipeline/ocr.py meeting.mp4 --out work/
+    python pipeline/ocr.py videos/ --out work/ --shard 3/8        # one task of an 8-way array
 
 Writes ``<out>/<id>.ocr.json``:
 

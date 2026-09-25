@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 """
-Step 2 of 4 -- transcription: what was said, when, and in which voice.
+Transcription: what was said, when, and in which voice.
 
 For every video (or audio file), extract 16 kHz mono audio, transcribe it with
 faster-whisper, and group the segments into voice clusters with pyannote.
 
     export HF_TOKEN=...            # access to the gated pyannote/speaker-diarization-3.1
-    python pipeline/step2_transcribe.py meeting.mp4 --out work/
-    python pipeline/step2_transcribe.py videos/ --out work/ --whisper large-v2 --shard 0/4
+    python pipeline/transcribe.py meeting.mp4 --out work/
+    python pipeline/transcribe.py videos/ --out work/ --whisper large-v2 --shard 0/4
 
 Writes ``<out>/<id>.asr.json``:
 
@@ -17,8 +17,10 @@ Writes ``<out>/<id>.asr.json``:
      "asr_seconds": 176.3}
 
 ``--clustering auto`` (default) clusters when ``HF_TOKEN`` is set; ``on`` treats a
-clustering failure as an error; ``off`` never clusters. Without clusters, step 4
+clustering failure as an error; ``off`` never clusters. Without clusters, ``merge.py``
 names each segment from screen time alone, which is noisier.
+
+Order: run before ``merge.py``. Independent of ``ocr.py``.
 
 GPU-bound: Whisper large-v2 runs ~22x real time on an L40. Must not run in the same
 process as ``ocr.py``.
