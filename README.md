@@ -8,9 +8,15 @@ tile and prints their name in it. This pipeline reads that name once a second, c
 the reads into stable person identities, and aligns them onto a Whisper transcript:
 
 ```json
-[{"start": 4.89, "end": 29.59, "speaker": "waynechristian", "text": "Good afternoon, ladies and gentlemen..."},
- {"start": 29.59, "end": 41.20, "speaker": "susangross", "text": "Thank you, Judge..."}]
+[{"start": 4.89, "end": 29.59, "speaker": "waynechristian", "speaker_name": "Judge Wayne Christian",
+  "ocr_label": "Wayne Christian", "text": "Good afternoon, ladies and gentlemen..."},
+ {"start": 29.59, "end": 41.20, "speaker": "susangross", "speaker_name": "Susan Gross",
+  "ocr_label": "Susan Gross - Pro..", "text": "Thank you, Judge..."}]
 ```
+
+`speaker` is the cleaned identity, linked across all meetings of a collection;
+`speaker_name` is its display name; `ocr_label` is the name as it was read off the
+screen, kept so the cleaning can be checked or redone.
 
 ## The pipeline
 
