@@ -357,6 +357,28 @@ def context_words(*texts: str) -> frozenset:
     return frozenset(words)
 
 
+def _restore_hyphens(display: str, raw: str) -> str:
+    """
+    Put back the hyphen of compound names in the displayed name only.
+
+    Parsing joins "O'Caña-Olivarez" and "Rojas-Moore" into single words for the key;
+    the displayed name should still read as written.
+
+    Example:
+        >>> _restore_hyphens("Patricia O'CañaOlivarez", "Judge Patricia O'Caña-Olivarez")
+        "Patricia O'Caña-Olivarez"
+        >>> _restore_hyphens("Aida Rojas Moore", "Aida Rojas-Moore")
+        'Aida Rojas-Moore'
+    """
+    for compound in re.findall(r"[^\W\d_]+(?:'[^\W\d_]+)?(?:-[^\W\d_]+(?:'[^\W\d_]+)?)+", str(raw or "")):
+        parts = compound.split("-")
+        for joined in ("".join(parts), " ".join(parts)):
+            if joined in display:
+                display = display.replace(joined, compound)
+                break
+    return display
+
+
 def parse_label(raw: str, context: frozenset = frozenset()) -> ParsedLabel:
     """
     Parse one raw OCR label into a person identity (or say why it is not one).
@@ -368,8 +390,8 @@ def parse_label(raw: str, context: frozenset = frozenset()) -> ParsedLabel:
         'nilesillich'
         >>> parse_label("CLO - Susan Gross").key
         'susangross'
-        >>> p = parse_label("Judge Patricia O'Caña-Olivarez"); p.key, p.titles
-        ('patriciaocanaolivarez', ('judge',))
+        >>> p = parse_label("Judge Patricia O'Caña-Olivarez"); p.key, p.titles, p.name
+        ('patriciaocanaolivarez', ('judge',), "Patricia O'Caña-Olivarez")
         >>> p = parse_label("JudgePatricia O'Caña-Oli.."); p.key, p.truncated
         ('patriciaocanaoli', True)
         >>> parse_label("Pat Benavides CC6 Crt Coordinator").key
@@ -506,7 +528,7 @@ def parse_label(raw: str, context: frozenset = frozenset()) -> ParsedLabel:
 
     candidates.sort(key=lambda c: (c[0], c[1]), reverse=True)
     run = candidates[0][2]
-    display = " ".join(d for d, _ in run)
+    display = _restore_hyphens(" ".join(d for d, _ in run), raw)
     tokens = tuple(f for _, f in run if f)
     # Middle and leading initials are dropped from the key once two full words remain,
     # so "F. Philip Carbullido", "Philip Carbullido" and "Wade J. Hedtke"/"Wade Hedtke"
