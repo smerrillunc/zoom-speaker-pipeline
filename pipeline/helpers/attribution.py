@@ -146,3 +146,64 @@ def merge_turns(segments: Sequence[dict]) -> Tuple[List[dict], List[dict]]:
         how["source"] = "screen" if how["screen_segments"] else "cluster"
         how["clusters"] = dict(how["clusters"])
     return turns, provenance
+
+
+NO_READ = "No Speaker"
+
+
+def label_turns(
+    turns: Sequence[dict],
+    raw_changes: Sequence[Sequence],
+    raw_to_speaker: dict,
+    display_names: dict,
+    duration: float,
+    lag: float = HIGHLIGHT_LAG_SECONDS,
+) -> List[dict]:
+    """
+    Add ``speaker_name`` and ``ocr_label`` to each turn.
+
+    ``speaker`` is the linked identity key and ``speaker_name`` its display name.
+    ``ocr_label`` is the label as OCR read it: of the raw reads that resolved to this
+    turn's speaker, the one on screen longest during the turn. When none was on screen
+    during the turn (it was named from its voice cluster), the speaker's most-seen read
+    in the meeting is used. ``Other`` turns keep the room, device or organisation text
+    that was on screen, and ``None`` when nothing was read at all.
+
+    Example:
+        >>> raw = [[0, "Pat Benavides - CC.."], [10, "Pat Benaivides"], [20, "Council Chambers"]]
+        >>> to = {"Pat Benavides - CC..": "patbenavides", "Pat Benaivides": "patbenavides",
+        ...       "Council Chambers": "Other"}
+        >>> out = label_turns([{"start": 1, "end": 8, "speaker": "patbenavides", "text": "a"},
+        ...                    {"start": 21, "end": 25, "speaker": "Other", "text": "b"}],
+        ...                   raw, to, {"patbenavides": "Pat Benavides"}, 30, lag=0.0)
+        >>> [(t["speaker_name"], t["ocr_label"]) for t in out]
+        [('Pat Benavides', 'Pat Benavides - CC..'), (None, 'Council Chambers')]
+    """
+    rows = sorted((float(t), s) for t, s in raw_changes)
+    intervals = [(t - lag, (rows[i + 1][0] if i + 1 < len(rows) else duration) - lag, s)
+                 for i, (t, s) in enumerate(rows)]
+    starts = [iv[0] for iv in intervals]
+
+    most_seen = defaultdict(Counter)
+    for a, b, raw in intervals:
+        if raw != NO_READ:
+            most_seen[raw_to_speaker.get(raw, "Other")][raw] += b - a
+
+    out = []
+    for turn in turns:
+        tally = Counter()
+        i = max(0, bisect.bisect_right(starts, turn["start"]) - 1)
+        while i < len(intervals) and intervals[i][0] < turn["end"]:
+            a, b, raw = intervals[i]
+            overlap = min(turn["end"], b) - max(turn["start"], a)
+            if overlap > 0 and raw != NO_READ and raw_to_speaker.get(raw, "Other") == turn["speaker"]:
+                tally[raw] += overlap
+            i += 1
+        pool = tally
+        if not pool and turn["speaker"] != "Other":
+            pool = most_seen.get(turn["speaker"], Counter())
+        label = max(sorted(pool), key=lambda r: pool[r]) if pool else None
+        name = None if turn["speaker"] == "Other" else display_names.get(turn["speaker"], turn["speaker"])
+        out.append({"start": turn["start"], "end": turn["end"], "speaker": turn["speaker"],
+                    "speaker_name": name, "ocr_label": label, "text": turn["text"]})
+    return out

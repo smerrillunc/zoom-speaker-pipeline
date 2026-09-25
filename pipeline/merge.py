@@ -20,7 +20,9 @@ cleaned on-screen speaker track (``<id>.speakers.json`` from ``clean_ocr.py``):
 
 Writes per meeting:
 
-    <out>/<id>.json               [{"start", "end", "speaker", "text"}, ...]   (the transcript)
+    <out>/<id>.json               the transcript: [{"start", "end", "speaker", "speaker_name",
+                                  "ocr_label", "text"}, ...] -- the linked identity key, its
+                                  display name, and the label as OCR read it
     <out>/<id>.attribution.json   per turn: named from "cluster" or "screen", on-screen share,
                                   voice clusters -- plus the display name of every speaker
     <out>/<id>.stats.json         grid fraction, layout, turns, speakers
@@ -32,7 +34,7 @@ import os
 import sys
 
 from helpers import __version__
-from helpers.attribution import HIGHLIGHT_LAG_SECONDS, attribute_segments, merge_turns
+from helpers.attribution import HIGHLIGHT_LAG_SECONDS, attribute_segments, label_turns, merge_turns
 from helpers.files import collect, read_json, stem, write_json
 
 
@@ -86,9 +88,11 @@ def main(argv=None):
             pure_threshold=args.pure_threshold, screen_threshold=args.screen_threshold,
             minor_share=args.minor_share)
         turns, provenance = merge_turns(segments)
+        names = {s: v["display"] for s, v in track["speakers"].items()}
+        turns = label_turns(turns, track.get("raw_changes", []), track.get("raw_to_speaker", {}),
+                            names, track["duration"], lag=args.lag)
 
         write_json(target, turns, indent=2)
-        names = {s: v["display"] for s, v in track["speakers"].items()}
         write_json(os.path.join(args.out, f"{meeting}.attribution.json"), {
             "version": __version__,
             "parameters": {"lag": args.lag, "pure_threshold": args.pure_threshold,
@@ -106,12 +110,13 @@ def main(argv=None):
             "audio_clustering": bool(speech.get("clustered")),
             "clustering_error": speech.get("error"),
         }, indent=2)
+        readable = [dict(t, speaker=t["speaker_name"] or "Other") for t in turns]
         if "txt" in formats:
-            open(os.path.join(args.out, f"{meeting}.txt"), "w", encoding="utf-8").write(render.to_text(turns))
+            open(os.path.join(args.out, f"{meeting}.txt"), "w", encoding="utf-8").write(render.to_text(readable))
         if "srt" in formats:
-            open(os.path.join(args.out, f"{meeting}.srt"), "w", encoding="utf-8").write(render.to_srt(turns))
+            open(os.path.join(args.out, f"{meeting}.srt"), "w", encoding="utf-8").write(render.to_srt(readable))
         if "vtt" in formats:
-            open(os.path.join(args.out, f"{meeting}.vtt"), "w", encoding="utf-8").write(render.to_vtt(turns))
+            open(os.path.join(args.out, f"{meeting}.vtt"), "w", encoding="utf-8").write(render.to_vtt(readable))
         written += 1
         print(f"{meeting}: {len(turns)} turns, {len({t['speaker'] for t in turns})} speakers, "
               f"grid {track['stats']['grid_fraction']:.0%}", flush=True)

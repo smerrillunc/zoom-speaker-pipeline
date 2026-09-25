@@ -142,11 +142,21 @@ def main(argv=None):
         on_screen = Counter()
         for (t, speaker), nxt in zip(track, track[1:] + [[ocr["duration"], None]]):
             on_screen[speaker] += max(0.0, nxt[0] - t)
+        # Which final speaker every raw read became, so a transcript can carry the
+        # label as OCR read it next to the linked identity.
+        raw_to_speaker = {}
+        for _, raw in ocr["raw_speaker_changes"]:
+            if raw not in raw_to_speaker:
+                label = parse_label(raw, context)
+                key = mapping.get(label.key, label.key)
+                raw_to_speaker[raw] = alias.get(key, key) if label.kind == "person" else "Other"
         write_json(os.path.join(args.out, f"{meeting}.speakers.json"), {
             "meeting": meeting,
             "video": ocr.get("video"),
             "duration": ocr["duration"],
             "changes": track,
+            "raw_changes": ocr["raw_speaker_changes"],
+            "raw_to_speaker": raw_to_speaker,
             "speakers": {s: {"display": display.get(s, "Other" if s == "Other" else s),
                              "seconds_on_screen": round(v, 1)} for s, v in sorted(on_screen.items())},
             "stats": {
