@@ -1,4 +1,4 @@
-# zoompipe
+# Zoom speaker pipeline
 
 Named-speaker transcripts from Zoom-style meeting recordings.
 
@@ -15,34 +15,57 @@ the reads into stable person identities, and aligns them onto a Whisper transcri
 ## The four steps
 
 ```
-                ┌── ocr.py ─────────► <id>.ocr.json ──► clean_ocr.py ──► <id>.speakers.json ─┐
- meeting video ─┤                                       (per collection)  registry.json       ├─► merge.py ──► <id>.json
-                └── transcribe.py ──► <id>.asr.json ──────────────────────────────────────────┘                 (transcript)
+                ┌── step1_ocr ────────► <id>.ocr.json ──► step3_clean_ocr ──► <id>.speakers.json ─┐
+ meeting video ─┤                                          (per collection)      registry.json       ├─► step4_merge ──► <id>.json
+                └── step2_transcribe ─► <id>.asr.json ───────────────────────────────────────────────┘                  (transcript)
 ```
 
 | Step | Script | Input → output | Cost |
 |---|---|---|---|
-| 1 | `ocr.py` | video → raw on-screen names, one read per second | CPU, ~1 s per frame on 4 cores |
-| 2 | `transcribe.py` | video → Whisper segments + pyannote voice clusters | GPU, ~22× real time (large-v2, L40) |
-| 3 | `clean_ocr.py` | all of a collection's OCR → cleaned speaker tracks + who-is-who registry | seconds per meeting |
-| 4 | `merge.py` | transcript + cleaned track → speaker-attributed transcript | seconds per meeting |
+| 1 | `step1_ocr.py` | video → raw on-screen names, one read per second | CPU, ~1 s per frame on 4 cores |
+| 2 | `step2_transcribe.py` | video → Whisper segments + pyannote voice clusters | GPU, ~22× real time (large-v2, L40) |
+| 3 | `step3_clean_ocr.py` | all of a collection's OCR → cleaned speaker tracks + who-is-who registry | seconds per meeting |
+| 4 | `step4_merge.py` | transcript + cleaned track → speaker-attributed transcript | seconds per meeting |
 
 Steps 1 and 2 are independent: run them in parallel, on different machines, or as
 separate job arrays. They must not share a process, because PaddleOCR and CTranslate2
 load conflicting OpenMP runtimes. Steps 3 and 4 need only `rapidfuzz`, so the
 expensive outputs can be re-cleaned and re-merged anywhere in minutes.
 
+## Layout
+
+```
+pipeline/
+    step1_ocr.py            video → raw on-screen names
+    step2_transcribe.py     video → Whisper segments + voice clusters
+    step3_clean_ocr.py      raw names → people, per collection
+    step4_merge.py          transcript + people → speaker-attributed transcript
+    helpers/                code the steps call; nothing here is run directly
+        highlight.py        find the highlighted tile, crop its name strip
+        namereader.py       read the name strip (PaddleOCR + EDSR)
+        speech.py           audio extraction, Whisper, pyannote
+        identity.py         parse names, link them into people
+        attribution.py      name each transcribed segment
+        render.py           txt / srt / vtt output
+        files.py            file discovery, sharding, safe writes
+run_pipeline.sh             all four steps over one folder of videos
+docs/METHOD.md              how names are cleaned and linked, with measurements
+docs/FORMATS.md             every output file and field
+```
+
+Steps 1 and 2 do not depend on each other; the numbers give the reading order.
+
 ## Quick start
 
 ```bash
-conda create -n zoompipe python=3.11 && conda activate zoompipe
+conda create -n zoomspeakers python=3.11 && conda activate zoomspeakers
 pip install -r requirements.txt            # exact versions; see Installation
 export HF_TOKEN=hf_...                     # for pyannote voice clusters (step 2)
 
-python ocr.py        meetings/ --out work/
-python transcribe.py meetings/ --out work/
-python clean_ocr.py  work/ --out work/ --context "Riverton City Council, Oregon"
-python merge.py --asr work/ --speakers work/ --out transcripts/ --formats json,txt
+python pipeline/step1_ocr.py        meetings/ --out work/
+python pipeline/step2_transcribe.py meetings/ --out work/
+python pipeline/step3_clean_ocr.py  work/ --out work/ --context "Riverton City Council, Oregon"
+python pipeline/step4_merge.py --asr work/ --speakers work/ --out transcripts/ --formats json,txt
 ```
 
 Or all four at once: `./run_pipeline.sh meetings/ work/ "Riverton City Council, Oregon"`.
@@ -67,10 +90,10 @@ in `<id>.ocr.json`, also in `<id>.stats.json` after step 4):
 
 ## Step by step
 
-### 1. `ocr.py`: who is on screen
+### 1. `step1_ocr.py`: who is on screen
 
 ```bash
-python ocr.py VIDEO_OR_DIR... --out DIR [--sampling-rate 1.0] [--no-super-resolution] [--shard i/n]
+python pipeline/step1_ocr.py VIDEO_OR_DIR... --out DIR [--sampling-rate 1.0] [--no-super-resolution] [--shard i/n]
 ```
 
 Each sampled frame is searched for the highlight ring, a thin, saturated green
@@ -80,10 +103,10 @@ read with low confidence are upscaled 4× with EDSR and re-read. The raw reads a
 stored unchanged. A preflight reads a synthetic label first, so a broken OCR install
 fails in seconds instead of producing a folder of unnamed meetings.
 
-### 2. `transcribe.py`: what was said, and in which voice
+### 2. `step2_transcribe.py`: what was said, and in which voice
 
 ```bash
-python transcribe.py VIDEO_OR_DIR... --out DIR [--whisper large-v2] [--clustering auto|on|off] [--shard i/n]
+python pipeline/step2_transcribe.py VIDEO_OR_DIR... --out DIR [--whisper large-v2] [--clustering auto|on|off] [--shard i/n]
 ```
 
 Extracts 16 kHz mono audio, transcribes with faster-whisper (VAD on), and clusters the
@@ -91,10 +114,10 @@ segments by voice with `pyannote/speaker-diarization-3.1`. That model is gated: 
 its terms on the Hugging Face Hub and set `HF_TOKEN`. With `--clustering auto` and no
 token, segments are left unclustered and step 4 names each one from screen time alone.
 
-### 3. `clean_ocr.py`: raw reads → people
+### 3. `step3_clean_ocr.py`: raw reads → people
 
 ```bash
-python clean_ocr.py DIR --out DIR [--context "Institution, Place"] [--no-cross-meeting]
+python pipeline/step3_clean_ocr.py DIR --out DIR [--context "Institution, Place"] [--no-cross-meeting]
 ```
 
 Run it once per **collection**: the meetings of one council, court or board, in one
@@ -119,10 +142,10 @@ collections.
 rule and score that linked it, and every **refused** link with its reason. Merges are
 auditable and reversible. See [docs/METHOD.md](docs/METHOD.md) for the rules.
 
-### 4. `merge.py`: attribute the text
+### 4. `step4_merge.py`: attribute the text
 
 ```bash
-python merge.py --asr DIR --speakers DIR --out DIR [--formats json,txt,srt,vtt] [--lag 0.6]
+python pipeline/step4_merge.py --asr DIR --speakers DIR --out DIR [--formats json,txt,srt,vtt] [--lag 0.6]
 ```
 
 The screen track is shifted back 0.6 s, because Zoom moves the highlight after a new

@@ -13,7 +13,7 @@ Run once per **collection** (one body's meetings: a council, a court). Two passe
    O'Cana-Olivarez" in another). Every merge and every refused merge is recorded in
    ``registry.json`` with the rule that decided it.
 
-    python clean_ocr.py work/ --out work/ --context "Montague Township Council, Ontario"
+    python pipeline/step3_clean_ocr.py work/ --out work/ --context "Montague Township Council, Ontario"
 
 Reads ``*.ocr.json`` (step 1; ``*.video.json`` from earlier runs also works) and writes:
 
@@ -33,9 +33,9 @@ import os
 import sys
 from collections import Counter, defaultdict
 
-from zoompipe import __version__
-from zoompipe.files import collect, read_json, stem, write_json
-from zoompipe.identity import (
+from helpers import __version__
+from helpers.files import collect, read_json, stem, write_json
+from helpers.identity import (
     context_words,
     display_name,
     link_identities,

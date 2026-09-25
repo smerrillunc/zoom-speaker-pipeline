@@ -9,10 +9,10 @@
 set -euo pipefail
 if [ $# -lt 2 ]; then sed -n 2,8p "$0"; exit 2; fi
 VIDEOS=$1; WORK=$2; CONTEXT=${3:-$(basename "$(cd "$VIDEOS" && pwd)" | tr '_' ' ')}
-HERE=$(cd "$(dirname "$0")" && pwd)
+HERE=$(cd "$(dirname "$0")" && pwd)/pipeline
 PY=${PYTHON:-python}
 
-"$PY" "$HERE/ocr.py"        "$VIDEOS" --out "$WORK/steps"
-"$PY" "$HERE/transcribe.py" "$VIDEOS" --out "$WORK/steps"
-"$PY" "$HERE/clean_ocr.py"  "$WORK/steps" --out "$WORK/steps" --context "$CONTEXT"
-"$PY" "$HERE/merge.py" --asr "$WORK/steps" --speakers "$WORK/steps" --out "$WORK/transcripts" --formats json,txt
+"$PY" "$HERE/step1_ocr.py"        "$VIDEOS" --out "$WORK/steps"
+"$PY" "$HERE/step2_transcribe.py" "$VIDEOS" --out "$WORK/steps"
+"$PY" "$HERE/step3_clean_ocr.py"  "$WORK/steps" --out "$WORK/steps" --context "$CONTEXT"
+"$PY" "$HERE/step4_merge.py" --asr "$WORK/steps" --speakers "$WORK/steps" --out "$WORK/transcripts" --formats json,txt
