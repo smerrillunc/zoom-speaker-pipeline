@@ -2,8 +2,8 @@
 Attribution: which cleaned on-screen identity said each transcribed segment.
 
 ``attribute_segments`` combines the two signals the pipeline has for every stretch of
-speech: the pyannote **voice cluster** (from ``step2_transcribe.py``) and the **on-screen
-identity** (from ``step3_clean_ocr.py``). ``merge_turns`` then joins consecutive segments of
+speech: the pyannote **voice cluster** (from ``transcribe.py``) and the **on-screen
+identity** (from ``clean_ocr.py``). ``merge_turns`` then joins consecutive segments of
 one speaker into turns and records, per turn, how the name was decided.
 """
 

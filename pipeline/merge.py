@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 """
-Step 4 of 4 -- merge: attribute every transcribed segment to a named speaker.
+Merge: attribute every transcribed segment to a named speaker.
 
-Joins each meeting's transcript (step 2, ``<id>.asr.json``) with its cleaned
-on-screen speaker track (step 3, ``<id>.speakers.json``):
+Order: run last, after ``transcribe.py`` and ``clean_ocr.py``.
+
+Joins each meeting's transcript (``<id>.asr.json`` from ``transcribe.py``) with its
+cleaned on-screen speaker track (``<id>.speakers.json`` from ``clean_ocr.py``):
 
 * The screen track is shifted back ``--lag`` seconds: Zoom moves the highlight
   about 0.6 s after a new voice starts.
@@ -14,7 +16,7 @@ on-screen speaker track (step 3, ``<id>.speakers.json``):
   holds at least ``--minor-share`` of the cluster; otherwise it keeps the cluster's
   name. A cluster heard mostly under a room, device or screen-share tile is ``Other``.
 
-    python pipeline/step4_merge.py --asr work/ --speakers work/ --out transcripts/ --formats json,txt,srt
+    python pipeline/merge.py --asr work/ --speakers work/ --out transcripts/ --formats json,txt,srt
 
 Writes per meeting:
 
@@ -36,8 +38,8 @@ from helpers.files import collect, read_json, stem, write_json
 
 def build_parser():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--asr", nargs="+", required=True, help="*.asr.json files or directories (step 2)")
-    p.add_argument("--speakers", nargs="+", required=True, help="*.speakers.json files or directories (step 3)")
+    p.add_argument("--asr", nargs="+", required=True, help="*.asr.json files or directories (from transcribe.py)")
+    p.add_argument("--speakers", nargs="+", required=True, help="*.speakers.json files or directories (from clean_ocr.py)")
     p.add_argument("--out", required=True, help="output directory")
     p.add_argument("--formats", default="json", help="comma list of json,txt,srt,vtt (default json)")
     p.add_argument("--lag", type=float, default=HIGHLIGHT_LAG_SECONDS,
