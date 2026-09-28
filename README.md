@@ -220,3 +220,7 @@ Useful environment variables:
 ## License
 
 MIT. See [LICENSE](LICENSE).
+
+`pipeline/helpers/data/given_names.txt` is derived from the Names Corpus, Version 1.3,
+copyright (C) 1991 Mark Kantrowitz, additions by Bill Ross, redistributed under its
+terms; see `pipeline/helpers/data/given_names_README.txt`.

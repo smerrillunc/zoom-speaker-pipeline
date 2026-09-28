@@ -29,6 +29,12 @@ reconcile them.
    hyphen or slash with no spaces around it separates only when one side is a role
    (`Appellant-John Thetford`). Otherwise it joins a compound (`O'Caña-Olivarez`,
    `Rojas-Moore`).
+   A label that is just two words around one comma is a single name, not two
+   segments. Directory style (`Kasting, Irma`, `Gonzalez, Robert R`) is put back in
+   reading order (`Irma Kasting`); the written order is kept only when the first word
+   is a known given name and the second is not (`Janet, Andersen`). Given names come
+   from the Kantrowitz names corpus (`pipeline/helpers/data/given_names.txt`). A
+   clipped label (`Kasting, Ir..`) keeps its old form, the surname.
 3. Split each segment into words, including camel-case (`JeffreyCarroll`,
    `ADAAdrian`). Name particles stay attached (`McGinn`, `DeAngelo`).
 4. Class each word as **title** (judge, mayor, councillor, …; also OCR-damaged or

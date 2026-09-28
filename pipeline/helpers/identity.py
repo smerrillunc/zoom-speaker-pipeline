@@ -46,6 +46,7 @@ Everything here is deterministic: the same labels give the same identities, in a
 input order.
 """
 
+import os
 import re
 import unicodedata
 from collections import Counter, defaultdict
@@ -70,7 +71,7 @@ councilwoman councilmember councilperson cllr cr commissioner comm chair chairma
 chairwoman chairperson vice president trustee alderman alderperson supervisor dr mr
 mrs ms miss mx prof rev magistrate marshal sheriff officer sgt sergeant det detective
 lt captain capt chief director senator sen rep representative reeve selectman
-selectwoman superintendent atty attorney ada adas da clerk secretary treasurer
+selectwoman superintendent atty attny attorney ada adas da clerk secretary treasurer
 member presiding associate senior assistant asst pro tem ret retired esq aag ausa
 """.split())
 
@@ -379,6 +380,62 @@ def _restore_hyphens(display: str, raw: str) -> str:
     return display
 
 
+def _uninvert(text: str, segments: List[str], context: frozenset, truncated: bool) -> List[str]:
+    """
+    Read a two-word label split by a comma as one name, in reading order.
+
+    Directory-style "Surname, Given" is the common form and is swapped; the label keeps
+    its written order only when the first word is a known given name and the second is
+    not ("Janet, Andersen"). Given names come from the Kantrowitz names corpus
+    (data/given_names.txt). Only a single comma between one word and a given name
+    (optionally followed by one initial) qualifies, so "Attorney, Uzo Mokolo" and
+    "Smith, Chair" are left alone. A clipped label ("Kasting, Ir..") keeps its old form:
+    its clipped given name would break the prefix match that links it to the full name.
+
+        >>> _uninvert("Kasting, Irma", ["Kasting", "Irma"], frozenset(), False)
+        ['Irma Kasting']
+        >>> _uninvert("Gonzalez, Robert R", ["Gonzalez", "Robert R"], frozenset(), False)
+        ['Robert R Gonzalez']
+        >>> _uninvert("Janet, Andersen", ["Janet", "Andersen"], frozenset(), False)
+        ['Janet Andersen']
+        >>> _uninvert("Lara, lan", ["Lara", "lan"], frozenset(), False)
+        ['lan Lara']
+        >>> _uninvert("Attorney, Uzo Mokolo", ["Attorney", "Uzo Mokolo"], frozenset(), False)
+        ['Attorney', 'Uzo Mokolo']
+    """
+    if truncated or len(segments) != 2 or text.count(",") != 1 or not re.fullmatch(r"[^,]+,[^,]+", text):
+        return segments
+    surname = _segment_tokens(segments[0], context)
+    given = _segment_tokens(segments[1], context)
+    if len(surname) != 1 or surname[0][2] != "name" or len(surname[0][1]) < 2:
+        return segments
+    if not 1 <= len(given) <= 2 or any(cls != "name" for _, _, cls in given) or len(given[0][1]) < 2:
+        return segments
+    if len(given) == 2 and len(given[1][1]) > 1:
+        return segments
+    if _is_given(surname[0][1]) and not _is_given(given[0][1]):
+        return [f"{segments[0]} {segments[1]}"]
+    return [f"{segments[1]} {segments[0]}"]
+
+
+_GIVEN_NAMES: Optional[frozenset] = None
+
+
+def _is_given(folded: str) -> bool:
+    """A known given name, allowing OCR's l for a capital I ("lan" for "Ian")."""
+    names = _given_names()
+    return folded in names or (folded.startswith("l") and "i" + folded[1:] in names)
+
+
+def _given_names() -> frozenset:
+    global _GIVEN_NAMES
+    if _GIVEN_NAMES is None:
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "given_names.txt")
+        with open(path, encoding="utf-8") as handle:
+            _GIVEN_NAMES = frozenset(line.strip() for line in handle if line.strip())
+    return _GIVEN_NAMES
+
+
 def parse_label(raw: str, context: frozenset = frozenset()) -> ParsedLabel:
     """
     Parse one raw OCR label into a person identity (or say why it is not one).
@@ -485,6 +542,7 @@ def parse_label(raw: str, context: frozenset = frozenset()) -> ParsedLabel:
 
     segments = [s.strip() for s in _SEGMENT_SPLIT.split(text) if s and s.strip()]
     segments = _join_compound(segments, context)
+    segments = _uninvert(text, segments, context, truncated)
 
     titles: List[str] = []
     roles: List[str] = []
