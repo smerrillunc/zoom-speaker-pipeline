@@ -205,22 +205,3 @@ Useful environment variables:
   backend that might happen to be installed.
 - Every parameter that affects the result is written into `registry.json` and
   `<id>.attribution.json`.
-
-## Limitations
-
-- **Two people sharing one tile** (`Joyce Johnson / Jennifer Michalik`) are attributed
-  to the first name. The video cannot separate them.
-- **A partial name that more than one person could complete** stays a separate
-  identity. `Judge Patricia` never merges when two judges named Patricia sit on the
-  same bench.
-- **Given names alone** (`Brandy`) are linked to a full name only within a meeting.
-- The thresholds (0.6 s lag; 0.8 / 0.7 / 0.1 attribution) were set from measured
-  distributions over 2,224 meetings, not tuned against labels.
-
-## License
-
-MIT. See [LICENSE](LICENSE).
-
-`pipeline/helpers/data/given_names.txt` is derived from the Names Corpus, Version 1.3,
-copyright (C) 1991 Mark Kantrowitz, additions by Bill Ross, redistributed under its
-terms; see `pipeline/helpers/data/given_names_README.txt`.
